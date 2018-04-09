@@ -1,0 +1,24 @@
+{% extends "base.html" %} {% block content %}
+<h5>Contact me</h5>
+<div style="padding: 1em">
+    <form action="/request" method="POST">
+        <div class="form-group">
+            <label for="">City:</label>
+            <input type="text" class="form-control" id="text" name="city">
+        </div>
+        <div class="form-group">
+            <label for="">Zip Code:
+                <Code></Code>:</label>
+            <input type="text" class="form-control" id="text" name="zip">
+        </div>
+        <br>
+        <div class="form-group">
+            <label for="">State:
+                <Code></Code>:</label>
+            <input type="text" class="form-control" id="text" name="state">
+        </div>
+
+        <button type="submit" class="btn btn-default">Submit</button>
+    </form>
+</div>
+{% endblock %}
