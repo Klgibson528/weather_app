@@ -20,6 +20,17 @@ def search(city):
     return ans
 
 
+def cache_data(result):
+    conn = psycopg2.connect("dbname=weather user=postgres")
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO weather (city, temp, wind) VALUES (%s, %s, %s)",
+        (result['name'], result['main']['temp'], result['wind']['speed']))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 class TemplateHandler(tornado.web.RequestHandler):
     def render_template(self, tpl, context):
         template = ENV.get_template(tpl)
@@ -48,7 +59,7 @@ class ResultHandler(TemplateHandler):
     def post(self):
         city = self.get_body_argument('city')
         result = search(city)
-        #I think I need to make a function to run here to input the city info
+        cache_data(result)
         self.set_header('Cache-Control',
                         'no-store, no-cache, must-revalidate, max-age=0')
         self.render_template("result.html", {'result': result})
