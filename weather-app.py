@@ -6,6 +6,7 @@ import requests
 import json
 import psycopg2
 
+
 from jinja2 import \
   Environment, PackageLoader, select_autoescape
 ENV = Environment(
@@ -58,11 +59,37 @@ class ResultHandler(TemplateHandler):
 
     def post(self):
         city = self.get_body_argument('city')
-        result = search(city)
-        cache_data(result)
-        self.set_header('Cache-Control',
-                        'no-store, no-cache, must-revalidate, max-age=0')
-        self.render_template("result.html", {'result': result})
+        try:
+            conn = psycopg2.connect("dbname='weather' user='postgres'")
+        except:
+            print("I am unable to connect to the database.")
+
+        cur = conn.cursor()
+        data = cur.execute("SELECT * FROM weather")
+
+        if city in data:
+            try:
+                conn = psycopg2.connect("dbname='weather' user='postgres'")
+            except:
+                print("I am unable to connect to the database.")
+
+            cur = conn.cursor()
+            temp = cur.execute(
+                "SELECT temp FROM weather WHERE city = '%s'").format(city)
+            wind = cur.execute(
+                "SELECT wind FROM weather WHERE city = '%s'").format(city)
+            results = {'name': city, 'temp': temp, 'speed': wind}
+            print('cache')
+            self.set_header('Cache-Control',
+                            'no-store, no-cache, must-revalidate, max-age=0')
+            self.render_template("cache.html", {'result': result})
+        else:
+            result = search(city)
+            cache_data(result)
+            print('new')
+            self.set_header('Cache-Control',
+                            'no-store, no-cache, must-revalidate, max-age=0')
+            self.render_template("result.html", {'result': result})
 
 
 def make_app():
@@ -71,6 +98,7 @@ def make_app():
             #home page
             (r"/", RequestHandler),
             (r"/request", ResultHandler),
+            (r"/cache", ResultHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {
                 'path': 'static'
             }),
