@@ -4,6 +4,7 @@ import tornado.log
 import os
 import requests
 import json
+import psycopg2
 
 from jinja2 import \
   Environment, PackageLoader, select_autoescape
@@ -11,11 +12,12 @@ ENV = Environment(
     loader=PackageLoader('weather-app', 'templates'),
     autoescape=select_autoescape(['html', 'xml']))
 
-#returns json data from API for Houston , TX based on City ID
-response = requests.get(
-    'https://api.openweathermap.org/data/2.5/weather?units=imperial&id=4699066&APPID=1e1e9213cbe1601262c8d3628ed8fc3c'
-).json()
-print(response)
+
+def search(city):
+    ans = requests.get(
+        'https://api.openweathermap.org/data/2.5/weather?units=imperial&q={}&APPID=1e1e9213cbe1601262c8d3628ed8fc3c'.
+        format(city)).json()
+    return ans
 
 
 class TemplateHandler(tornado.web.RequestHandler):
@@ -33,9 +35,11 @@ class RequestHandler(TemplateHandler):
 
         self.render_template("request.html", context)
 
+    def get_request(self, response):
+        self.response = response
+
 
 class ResultHandler(TemplateHandler):
-    #Why do we need both of these again?
     def get(self):
         self.set_header('Cache-Control',
                         'no-store, no-cache, must-revalidate, max-age=0')
@@ -43,10 +47,11 @@ class ResultHandler(TemplateHandler):
 
     def post(self):
         city = self.get_body_argument('city')
+        result = search(city)
         #I think I need to make a function to run here to input the city info
         self.set_header('Cache-Control',
                         'no-store, no-cache, must-revalidate, max-age=0')
-        self.render_template("result.html", {})
+        self.render_template("result.html", {'result': result})
 
 
 def make_app():
@@ -54,7 +59,7 @@ def make_app():
         [
             #home page
             (r"/", RequestHandler),
-            (r"/page2", ResultHandler),
+            (r"/request", ResultHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {
                 'path': 'static'
             }),
