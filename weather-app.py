@@ -5,6 +5,7 @@ import os
 import requests
 import json
 import psycopg2
+import queries
 
 
 from jinja2 import \
@@ -13,26 +14,14 @@ ENV = Environment(
     loader=PackageLoader('weather-app', 'templates'),
     autoescape=select_autoescape(['html', 'xml']))
 
-
-def search(city):
-    ans = requests.get(
-        'https://api.openweathermap.org/data/2.5/weather?units=imperial&q={}&APPID=1e1e9213cbe1601262c8d3628ed8fc3c'.
-        format(city)).json()
-    return ans
-
-
-def cache_data(result):
-    conn = psycopg2.connect("dbname=weather user=postgres")
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO weather (city, temp, wind) VALUES (%s, %s, %s)",
-        (result['name'], result['main']['temp'], result['wind']['speed']))
-    conn.commit()
-    cur.close()
-    conn.close()
+api_key = os.environ.get('API_KEY')
 
 
 class TemplateHandler(tornado.web.RequestHandler):
+    def initialize(self):
+        self.session = queries.Session(
+            'postgresql://postgres@localhost:5432/weather')
+
     def render_template(self, tpl, context):
         template = ENV.get_template(tpl)
         self.write(template.render(**context))
@@ -52,6 +41,32 @@ class RequestHandler(TemplateHandler):
 
 
 class ResultHandler(TemplateHandler):
+    def search(self, city):
+        ans = requests.get(
+            'https://api.openweathermap.org/data/2.5/weather?units=imperial&q={}&APPID={}'.
+            format(city, api_key)).json()
+        return ans
+
+    def cache_data(self, result):
+        conn = psycopg2.connect("dbname=weather user=postgres")
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO weather (city, temp, wind) VALUES (%s, %s, %s)",
+            (result['name'], result['main']['temp'], result['wind']['speed']))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    # def get_cache(self, city):
+    #     db_entry = self.session.query(
+    #         'SELECT * FROM weather WHERE city = city')
+    #     result = {
+    #         'name': db_entry[0]['city'],
+    #         'temp': db_entry[0]['temp'],
+    #         'wind': db_entry[0]['wind']
+    #     }
+    #     return result
+
     def get(self):
         self.set_header('Cache-Control',
                         'no-store, no-cache, must-revalidate, max-age=0')
@@ -59,37 +74,42 @@ class ResultHandler(TemplateHandler):
 
     def post(self):
         city = self.get_body_argument('city')
-        try:
-            conn = psycopg2.connect("dbname='weather' user='postgres'")
-        except:
-            print("I am unable to connect to the database.")
-
+        # self.get_cache(city)
+        conn = psycopg2.connect("dbname='weather' user='postgres'")
         cur = conn.cursor()
-        data = cur.execute("SELECT * FROM weather")
+        data = cur.execute("SELECT city FROM weather")
+        conn.commit()
+        cur.close()
+        conn.close()
+        print(data)
+        # if city in data:
+        #     try:
+        #         conn = psycopg2.connect("dbname='weather' user='postgres'")
+        #     except:
+        #         print("I am unable to connect to the database.")
 
-        if city in data:
-            try:
-                conn = psycopg2.connect("dbname='weather' user='postgres'")
-            except:
-                print("I am unable to connect to the database.")
+        #     cur = conn.cursor()
+        #     db_entry = cur.execute(
+        #         "SELECT * FROM weather WHERE city = '%s'").format(city)
+        #
 
-            cur = conn.cursor()
-            temp = cur.execute(
-                "SELECT temp FROM weather WHERE city = '%s'").format(city)
-            wind = cur.execute(
-                "SELECT wind FROM weather WHERE city = '%s'").format(city)
-            results = {'name': city, 'temp': temp, 'speed': wind}
-            print('cache')
-            self.set_header('Cache-Control',
-                            'no-store, no-cache, must-revalidate, max-age=0')
-            self.render_template("cache.html", {'result': result})
-        else:
-            result = search(city)
-            cache_data(result)
-            print('new')
-            self.set_header('Cache-Control',
-                            'no-store, no-cache, must-revalidate, max-age=0')
-            self.render_template("result.html", {'result': result})
+        #     self.set_header('Cache-Control',
+        #                     'no-store, no-cache, must-revalidate, max-age=0')
+        #     self.render_template("cache.html", {'result': result})
+        # else:
+        #     result = search(city)
+        #     cache_data(result)
+        #     print('new')
+        #     self.set_header('Cache-Control',
+        #                     'no-store, no-cache, must-revalidate, max-age=0')
+        #     self.render_template("result.html", {'result': result})
+
+        result = self.search(city)
+        self.cache_data(result)
+        print('new')
+        self.set_header('Cache-Control',
+                        'no-store, no-cache, must-revalidate, max-age=0')
+        self.render_template("result.html", {'result': result})
 
 
 def make_app():
