@@ -4,7 +4,7 @@ import tornado.log
 import os
 import requests
 import json
-import psycopg2
+import datetime
 import queries
 
 
@@ -26,7 +26,7 @@ class TemplateHandler(tornado.web.RequestHandler):
         template = ENV.get_template(tpl)
         self.write(template.render(**context))
 
-
+# work below here
 class RequestHandler(TemplateHandler):
     def get(self):
         self.set_header('Cache-Control',
@@ -57,15 +57,6 @@ class ResultHandler(TemplateHandler):
         cur.close()
         conn.close()
 
-    # def get_cache(self, city):
-    #     db_entry = self.session.query(
-    #         'SELECT * FROM weather WHERE city = city')
-    #     result = {
-    #         'name': db_entry[0]['city'],
-    #         'temp': db_entry[0]['temp'],
-    #         'wind': db_entry[0]['wind']
-    #     }
-    #     return result
 
     def get(self):
         self.set_header('Cache-Control',
@@ -82,28 +73,7 @@ class ResultHandler(TemplateHandler):
         cur.close()
         conn.close()
         print(data)
-        # if city in data:
-        #     try:
-        #         conn = psycopg2.connect("dbname='weather' user='postgres'")
-        #     except:
-        #         print("I am unable to connect to the database.")
-
-        #     cur = conn.cursor()
-        #     db_entry = cur.execute(
-        #         "SELECT * FROM weather WHERE city = '%s'").format(city)
-        #
-
-        #     self.set_header('Cache-Control',
-        #                     'no-store, no-cache, must-revalidate, max-age=0')
-        #     self.render_template("cache.html", {'result': result})
-        # else:
-        #     result = search(city)
-        #     cache_data(result)
-        #     print('new')
-        #     self.set_header('Cache-Control',
-        #                     'no-store, no-cache, must-revalidate, max-age=0')
-        #     self.render_template("result.html", {'result': result})
-
+        
         result = self.search(city)
         self.cache_data(result)
         print('new')

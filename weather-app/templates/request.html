@@ -1,13 +1,16 @@
-{% extends "base.html" %} {% block content %}
-<h3>What City and You Looking For?</h3>
-<div>
-    <form action="/request" method="POST">
-        <div class="form-group">
-            <label for="">City:</label>
-            <input type="text" class="form-control" id="text" name="city">
-        </div>
-        <br>
-        <button type="submit" class="btn btn-default">Submit</button>
-    </form>
+{% extends "base.html" %} {% block css %}
+<link rel="stylesheet" type="text/css" medi="screen" href="static/css/request.css" /> {% endblock %} {% block content %}
+<div id="container">
+    <h3>What City and You Looking For?</h3>
+    <div id=box1>
+        <form action="/request" method="POST">
+            <div class="form-group">
+                <label for="">City:</label>
+                <input type="text" class="form-control" id="text" name="city">
+            </div>
+            <br>
+            <button type="submit" class="btn btn-default">Submit</button>
+        </form>
+    </div>
 </div>
 {% endblock %}

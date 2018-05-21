@@ -1,3 +1,15 @@
-City: {{ result['name'] }}
-<br> Current Temperature: {{ result['main']['temp'] }}
-<br> Wind Speed: {{ result['wind']['speed'] }}
+{% extends "base.html" %} {% block css %}
+
+<link rel="stylesheet" type="text/css" medi="screen" href="static/css/result.css" /> {% endblock %} {% block content %}
+<div id="container">
+    <div id="box1">
+        <div>
+            <h3>{{ result['name'] }}</h3>
+            <div id="box2">
+                <p>Current Temperature: {{ result['main']['temp'] }}</p>
+                <p>Wind Speed: {{ result['wind']['speed'] }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
